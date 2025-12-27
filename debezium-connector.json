@@ -1,0 +1,21 @@
+{
+  "name": "mlops-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "authz",
+    "database.password": "authz123",
+    "database.dbname": "authz",
+    "database.server.name": "authz",
+    "topic.prefix": "authz",
+    "table.include.list": "authz.mlops_orgs,authz.mlops_roles,authz.mlops_perms,authz.mlops_users",
+    "publication.name": "mlops_pub",
+    "slot.name": "mlops_slot",
+    "plugin.name": "pgoutput",
+    "transforms": "unwrap",
+    "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+    "transforms.unwrap.drop.tombstones": "false",
+    "transforms.unwrap.delete.handling.mode": "rewrite"
+  }
+}
