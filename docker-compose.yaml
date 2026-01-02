@@ -10,6 +10,7 @@ services:
       - ./:/work
     entrypoint: ""
     command: ["/bin/sh", "scripts/render_init.sh"]
+
   postgres:
     image: postgres:15
     container_name: authz-postgres
@@ -63,6 +64,7 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_LOG4J_ROOT_LOGLEVEL: WARN
     healthcheck:
       test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
       interval: 10s
@@ -85,11 +87,24 @@ services:
       OFFSET_STORAGE_TOPIC: debezium_offsets
       STATUS_STORAGE_TOPIC: debezium_statuses
       BOOTSTRAP_SERVERS: kafka:9092
+      CONNECT_LOG4J_ROOT_LOGLEVEL: WARN
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8083/connectors"]
       interval: 10s
       timeout: 10s
       retries: 5
+
+  connector-init:
+    image: curlimages/curl:latest
+    container_name: authz-connector-init
+    depends_on:
+      debezium:
+        condition: service_healthy
+    volumes:
+      - ./scripts:/scripts
+    entrypoint: ["/bin/sh", "/scripts/setup.sh"]
+    environment:
+      CONNECT_URL: http://debezium:8083
 
   opa:
     image: openpolicyagent/opa:latest
@@ -115,6 +130,8 @@ services:
         condition: service_healthy
       opa:
         condition: service_started
+      connector-init:
+        condition: service_completed_successfully
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       POSTGRES_HOST: postgres
@@ -122,6 +139,8 @@ services:
       POSTGRES_USER: authz
       POSTGRES_PASSWORD: authz123
       OPA_URL: http://opa:8181
+      TOPIC_PREFIX: authz.authz
+    restart: unless-stopped
 
 volumes:
   postgres_data:

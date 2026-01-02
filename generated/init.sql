@@ -127,6 +127,14 @@ BEGIN
     RETURN jsonb_build_object('rbac', v_rbac, 'users', v_users);
 END; $$ LANGUAGE plpgsql;
 
+
+-- ============================================================
+-- GLOBAL PUBLICATION FOR ALL TABLES
+-- ============================================================
+DROP PUBLICATION IF EXISTS authz_pub;
+CREATE PUBLICATION authz_pub FOR ALL TABLES;
+
+
 -- ============================================================
 -- PLATFORM BOOTSTRAP (CI/CD INJECTED)
 -- ============================================================
