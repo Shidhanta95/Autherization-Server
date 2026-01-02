@@ -1,6 +1,15 @@
 version: '3.8'
 
 services:
+  init-render:
+    image: mikefarah/yq:4
+    container_name: authz-init-render
+    user: root
+    working_dir: /work
+    volumes:
+      - ./:/work
+    entrypoint: ""
+    command: ["/bin/sh", "scripts/render_init.sh"]
   postgres:
     image: postgres:15
     container_name: authz-postgres
@@ -18,8 +27,11 @@ services:
       - "max_wal_senders=4"
     ports:
       - "5432:5432"
+    depends_on:
+      init-render:
+        condition: service_completed_successfully
     volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./generated/init.sql:/docker-entrypoint-initdb.d/00_init.sql
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U authz"]
