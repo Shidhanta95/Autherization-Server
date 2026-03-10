@@ -1,0 +1,212 @@
+{
+
+  "email": "vishnu.bharadwaja@cloudangles.com",
+
+  "exp": 1773162065,
+
+  "iat": 1773126065,
+
+  "licence": {
+
+    "instanceid": "3f4e94a0-5bb8-4c59-ae36-1f17d7b2170d",
+
+    "ip_address": "120.87.23.11",
+
+    "organization": "cloudangles",
+
+    "License": {
+
+      "product_name": "mlops",
+
+      "product_version": "0",
+
+      "activation_date": "2025-05-01T00:00:00",
+
+      "expiration_date": "2027-05-30T00:00:00",
+
+      "heartbeat": 4,
+
+      "Features": [
+
+        {
+
+          "FeatureName": "maximum-users",
+
+          "FeatureValue": 20
+
+        },
+
+        {
+
+          "FeatureName": "maximum-business-unit",
+
+          "FeatureValue": 25
+
+        },
+
+        {
+
+          "FeatureName": "project",
+
+          "FeatureValue": "true"
+
+        },
+
+        {
+
+          "FeatureName": "pipeline",
+
+          "FeatureValue": "true"
+
+        },
+
+        {
+
+          "FeatureName": "experiment",
+
+          "FeatureValue": "true"
+
+        },
+
+        {
+
+          "FeatureName": "model-hub",
+
+          "FeatureValue": "true"
+
+        },
+
+        {
+
+          "FeatureName": "serving",
+
+          "FeatureValue": "true"
+
+        },
+
+        {
+
+          "FeatureName": "monitoring",
+
+          "FeatureValue": "true"
+
+        }
+
+      ]
+
+    },
+
+    "Properties": {
+
+      "project": true,
+
+      "pipeline": true,
+
+      "experiment": true,
+
+      "model-hub": true,
+
+      "serving": true,
+
+      "monitoring": true
+
+    },
+
+    "MaxUsers": 20,
+
+    "MaxBUs": 25,
+
+    "Permissions": {
+
+      "project": false,
+
+      "pipeline": false,
+
+      "experiment": false,
+
+      "model-hub": false,
+
+      "serving": false,
+
+      "monitoring": false
+
+    }
+
+  },
+
+  "org_admin": 1,
+
+  "organization": "cloudangles",
+
+  "permissions": {
+
+    "projects": {
+
+      "read": true,
+
+      "write": true,
+
+      "delete": true
+
+    },
+
+    "pipelines": {
+
+      "read": true,
+
+      "write": true,
+
+      "delete": true
+
+    },
+
+    "experiments": {
+
+      "read": true,
+
+      "write": true,
+
+      "delete": true
+
+    },
+
+    "modelhub": {
+
+      "read": true,
+
+      "write": true,
+
+      "delete": true
+
+    },
+
+    "serving": {
+
+      "read": true,
+
+      "write": true,
+
+      "delete": true
+
+    },
+
+    "monitoring": {
+
+      "read": true,
+
+      "write": false,
+
+      "delete": false
+
+    },
+
+    "global_access": true,
+
+    "bu_access": false
+
+  },
+
+  "userID": "471ab5e9-b8e5-4dd6-a8f8-9d387ff4081c"
+
+}
+ 

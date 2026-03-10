@@ -1,0 +1,254 @@
+version: '3.8'
+
+# ============================================================
+# Auth & Authorization System v2
+# ============================================================
+# 
+# Services:
+# - PostgreSQL: RBAC database
+# - Zookeeper: Kafka coordination
+# - Kafka: Event streaming for CDC
+# - Debezium: Change Data Capture
+# - OPA: Policy engine
+# - Redis: Session storage
+# - Sync Worker: PostgreSQL -> OPA sync
+# - Auth Server: Authentication & Authorization API
+#
+# Usage:
+#   docker-compose up -d
+#
+# ============================================================
+
+services:
+  # ============================================================
+  # INIT - Render SQL template
+  # ============================================================
+  init-render:
+    image: mikefarah/yq:4
+    container_name: authz-v2-init-render
+    user: root
+    working_dir: /work
+    volumes:
+      - ./:/work
+    entrypoint: ""
+    command: ["/bin/sh", "scripts/render_init.sh"]
+
+  # ============================================================
+  # DATABASE - PostgreSQL
+  # ============================================================
+  postgres:
+    image: postgres:15
+    container_name: authz-v2-postgres
+    environment:
+      POSTGRES_USER: authz
+      POSTGRES_PASSWORD: authz123
+      POSTGRES_DB: authz
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_replication_slots=4"
+      - "-c"
+      - "max_wal_senders=4"
+    ports:
+      - "5432:5432"
+    depends_on:
+      init-render:
+        condition: service_completed_successfully
+    volumes:
+      - ./generated/init.sql:/docker-entrypoint-initdb.d/00_init.sql
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U authz"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================
+  # KAFKA - Zookeeper
+  # ============================================================
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: authz-v2-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  # ============================================================
+  # KAFKA - Broker
+  # ============================================================
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: authz-v2-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_LOG4J_ROOT_LOGLEVEL: WARN
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  # ============================================================
+  # CDC - Debezium Connect
+  # ============================================================
+  debezium:
+    image: debezium/connect:2.4
+    container_name: authz-v2-debezium
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8083:8083"
+    environment:
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: debezium_configs
+      OFFSET_STORAGE_TOPIC: debezium_offsets
+      STATUS_STORAGE_TOPIC: debezium_statuses
+      BOOTSTRAP_SERVERS: kafka:9092
+      CONNECT_LOG4J_ROOT_LOGLEVEL: WARN
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/connectors"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  # ============================================================
+  # CDC - Connector Init
+  # ============================================================
+  connector-init:
+    image: curlimages/curl:latest
+    container_name: authz-v2-connector-init
+    depends_on:
+      debezium:
+        condition: service_healthy
+    volumes:
+      - ./scripts:/scripts
+    entrypoint: ["/bin/sh", "/scripts/setup.sh"]
+    environment:
+      CONNECT_URL: http://debezium:8083
+
+  # ============================================================
+  # POLICY ENGINE - OPA
+  # ============================================================
+  opa:
+    image: openpolicyagent/opa:latest
+    container_name: authz-v2-opa
+    ports:
+      - "8181:8181"
+    command:
+      - "run"
+      - "--server"
+      - "--addr=0.0.0.0:8181"
+      - "--set=decision_logs.console=true"
+    healthcheck:
+      test: ["CMD", "/opa", "eval", "true"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ============================================================
+  # SESSION STORAGE - Redis
+  # ============================================================
+  redis:
+    image: redis:7-alpine
+    container_name: authz-v2-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================
+  # SYNC WORKER - PostgreSQL -> OPA
+  # ============================================================
+  sync-worker:
+    build:
+      context: ./sync-worker
+      dockerfile: Dockerfile
+    container_name: authz-v2-sync-worker
+    depends_on:
+      debezium:
+        condition: service_healthy
+      opa:
+        condition: service_healthy
+      connector-init:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: authz
+      POSTGRES_USER: authz
+      POSTGRES_PASSWORD: authz123
+      OPA_URL: http://opa:8181
+      TOPIC_PREFIX: authz.authz
+      POLICY_FILE: /policy/policy.rego
+    volumes:
+      - ./opa-policy:/policy:ro
+    restart: unless-stopped
+
+  # ============================================================
+  # AUTH SERVER - FastAPI Application
+  # ============================================================
+  auth-server:
+    build:
+      context: ./auth-server
+      dockerfile: Dockerfile
+    container_name: authz-v2-auth-server
+    depends_on:
+      opa:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      # Application Settings
+      DEBUG: "true"  # Enable debug mode for test endpoints
+      
+      # JWT Settings
+      SECRET_KEY: ${SECRET_KEY:-change-this-in-production-use-a-strong-secret}
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      REFRESH_TOKEN_EXPIRE_DAYS: 30
+      
+      # Okta Settings (override via .env file or environment)
+      OKTA_DOMAIN: ${OKTA_DOMAIN:-dev-example.okta.com}
+      OKTA_ISSUER: ${OKTA_ISSUER:-https://dev-example.okta.com/oauth2/default}
+      OKTA_CLIENT_ID: ${OKTA_CLIENT_ID:-your-client-id}
+      OKTA_CLIENT_SECRET: ${OKTA_CLIENT_SECRET:-your-client-secret}
+      REDIRECT_URI: ${REDIRECT_URI:-http://localhost:8000/api/v1/auth/callback}
+      
+      # Service URLs
+      OPA_URL: http://opa:8181
+      REDIS_URL: redis://redis:6379
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
