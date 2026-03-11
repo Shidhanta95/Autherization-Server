@@ -56,7 +56,16 @@ def create_authorization_url(
         Tuple of (authorization_url, nonce)
     """
     nonce = str(uuid.uuid4())
-    auth_endpoint = f"{issuer}/v1/authorize"
+
+    # Detect IdP type based on issuer URL
+    # Keycloak: http://localhost:8080/realms/authz
+    # Okta: https://dev-xxxxx.okta.com/oauth2/default
+    if "/realms/" in issuer:
+        # Keycloak format
+        auth_endpoint = f"{issuer}/protocol/openid-connect/auth"
+    else:
+        # Okta format
+        auth_endpoint = f"{issuer}/v1/authorize"
 
     params = {
         "client_id": client_id,
@@ -83,7 +92,16 @@ async def exchange_code_for_tokens(code: str) -> Dict[str, Any]:
     Raises:
         httpx.HTTPStatusError: If the token exchange fails
     """
-    token_endpoint = f"{settings.OKTA_ISSUER}/v1/token"
+    # Use internal URL for server-to-server communication (Docker networking)
+    issuer = settings.OKTA_ISSUER_INTERNAL or settings.OKTA_ISSUER
+
+    # Detect IdP type based on issuer URL
+    if "/realms/" in issuer:
+        # Keycloak format
+        token_endpoint = f"{issuer}/protocol/openid-connect/token"
+    else:
+        # Okta format
+        token_endpoint = f"{issuer}/v1/token"
 
     headers = {
         "Accept": "application/json",
@@ -121,7 +139,19 @@ async def verify_id_token(id_token: str, access_token: str) -> Optional[Dict[str
     Returns:
         The verified token claims, or None if verification fails
     """
-    jwks_endpoint = f"{settings.OKTA_ISSUER}/v1/keys"
+    # Use internal URL for server-to-server communication (Docker networking)
+    issuer_internal = settings.OKTA_ISSUER_INTERNAL or settings.OKTA_ISSUER
+    issuer_external = (
+        settings.OKTA_ISSUER
+    )  # For token validation (issuer claim uses external URL)
+
+    # Detect IdP type based on issuer URL
+    if "/realms/" in issuer_internal:
+        # Keycloak format
+        jwks_endpoint = f"{issuer_internal}/protocol/openid-connect/certs"
+    else:
+        # Okta format
+        jwks_endpoint = f"{issuer_internal}/v1/keys"
 
     async with httpx.AsyncClient() as client:
         response = await client.get(jwks_endpoint, timeout=10.0)
@@ -150,12 +180,13 @@ async def verify_id_token(id_token: str, access_token: str) -> Optional[Dict[str
             return None
 
         # Verify and decode the token
+        # Note: issuer in token will be external URL, so we validate against that
         claims = jwt.decode(
             id_token,
             rsa_key,
             algorithms=["RS256"],
             audience=settings.OKTA_CLIENT_ID,
-            issuer=settings.OKTA_ISSUER,
+            issuer=issuer_external,
             access_token=access_token,
         )
 

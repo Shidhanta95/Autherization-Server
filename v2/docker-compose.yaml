@@ -208,6 +208,30 @@ services:
     restart: unless-stopped
 
   # ============================================================
+  # IDENTITY PROVIDER - Keycloak
+  # ============================================================
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: authz-v2-keycloak
+    command:
+      - start-dev
+      - --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./keycloak-config/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+      - keycloak_data:/opt/keycloak/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health/ready || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 90s
+
+  # ============================================================
   # AUTH SERVER - FastAPI Application
   # ============================================================
   auth-server:
@@ -220,6 +244,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      keycloak:
+        condition: service_started
     ports:
       - "8000:8000"
     environment:
@@ -232,11 +258,12 @@ services:
       ACCESS_TOKEN_EXPIRE_MINUTES: 60
       REFRESH_TOKEN_EXPIRE_DAYS: 30
       
-      # Okta Settings (override via .env file or environment)
-      OKTA_DOMAIN: ${OKTA_DOMAIN:-dev-example.okta.com}
-      OKTA_ISSUER: ${OKTA_ISSUER:-https://dev-example.okta.com/oauth2/default}
-      OKTA_CLIENT_ID: ${OKTA_CLIENT_ID:-your-client-id}
-      OKTA_CLIENT_SECRET: ${OKTA_CLIENT_SECRET:-your-client-secret}
+      # Keycloak/OIDC Settings (using local Keycloak)
+      OKTA_DOMAIN: ${OKTA_DOMAIN:-localhost:8080}
+      OKTA_ISSUER: ${OKTA_ISSUER:-http://localhost:8080/realms/authz}
+      OKTA_ISSUER_INTERNAL: ${OKTA_ISSUER_INTERNAL:-http://keycloak:8080/realms/authz}
+      OKTA_CLIENT_ID: ${OKTA_CLIENT_ID:-authz-client}
+      OKTA_CLIENT_SECRET: ${OKTA_CLIENT_SECRET:-authz-client-secret}
       REDIRECT_URI: ${REDIRECT_URI:-http://localhost:8000/api/v1/auth/callback}
       
       # Service URLs
@@ -252,3 +279,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  keycloak_data:

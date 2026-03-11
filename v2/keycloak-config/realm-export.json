@@ -1,0 +1,329 @@
+{
+  "realm": "authz",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": false,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "roles": {
+    "realm": [
+      {
+        "name": "default-roles-authz",
+        "description": "Default roles",
+        "composite": true,
+        "composites": {
+          "realm": ["offline_access", "uma_authorization"]
+        }
+      },
+      {
+        "name": "uma_authorization",
+        "description": "UMA authorization"
+      },
+      {
+        "name": "offline_access",
+        "description": "Offline access"
+      }
+    ]
+  },
+  "defaultRole": {
+    "name": "default-roles-authz",
+    "description": "Default roles",
+    "composite": true
+  },
+  "requiredCredentials": ["password"],
+  "users": [
+    {
+      "username": "testuser@acme.com",
+      "email": "testuser@acme.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Test",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "testpassword123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["default-roles-authz"]
+    },
+    {
+      "username": "test.user@gmail.com",
+      "email": "test.user@gmail.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Test",
+      "lastName": "Native",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "test.user",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["default-roles-authz"]
+    },
+    {
+      "username": "admin@acme.com",
+      "email": "admin@acme.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Admin",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "adminpassword123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["default-roles-authz"]
+    }
+  ],
+  "identityProviders": [
+    {
+      "alias": "auth0",
+      "displayName": "Login with Auth0",
+      "providerId": "oidc",
+      "enabled": true,
+      "updateProfileFirstLoginMode": "on",
+      "trustEmail": true,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "authenticateByDefault": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "userInfoUrl": "https://dev-oc66jgcd2jk4xl57.us.auth0.com/userinfo",
+        "validateSignature": "true",
+        "tokenUrl": "https://dev-oc66jgcd2jk4xl57.us.auth0.com/oauth/token",
+        "clientId": "09aAFjP9HbWHDU2ntQgKLWgi8oIh1T60",
+        "jwksUrl": "https://dev-oc66jgcd2jk4xl57.us.auth0.com/.well-known/jwks.json",
+        "issuer": "https://dev-oc66jgcd2jk4xl57.us.auth0.com/",
+        "useJwksUrl": "true",
+        "pkceEnabled": "false",
+        "authorizationUrl": "https://dev-oc66jgcd2jk4xl57.us.auth0.com/authorize",
+        "clientAuthMethod": "client_secret_post",
+        "syncMode": "INHERIT",
+        "clientSecret": "REPLACE_WITH_AUTH0_CLIENT_SECRET"
+      }
+    },
+    {
+      "alias": "azure-ad",
+      "displayName": "Login with Microsoft",
+      "providerId": "oidc",
+      "enabled": true,
+      "updateProfileFirstLoginMode": "on",
+      "trustEmail": true,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "authenticateByDefault": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "tokenUrl": "https://login.microsoftonline.com/9273b711-7394-440d-9920-6183af3e2d95/oauth2/v2.0/token",
+        "clientId": "91a9b163-d6fa-4c0c-80df-3a3358b33698",
+        "jwksUrl": "https://login.microsoftonline.com/9273b711-7394-440d-9920-6183af3e2d95/discovery/v2.0/keys",
+        "issuer": "https://login.microsoftonline.com/9273b711-7394-440d-9920-6183af3e2d95/v2.0",
+        "userInfoUrl": "https://graph.microsoft.com/oidc/userinfo",
+        "authorizationUrl": "https://login.microsoftonline.com/9273b711-7394-440d-9920-6183af3e2d95/oauth2/v2.0/authorize",
+        "clientAuthMethod": "client_secret_post",
+        "validateSignature": "true",
+        "useJwksUrl": "true",
+        "pkceEnabled": "false",
+        "defaultScope": "openid profile email",
+        "syncMode": "INHERIT",
+        "clientSecret": "REPLACE_WITH_AZURE_CLIENT_SECRET"
+      }
+    },
+    {
+      "alias": "okta",
+      "displayName": "Login with Okta",
+      "providerId": "oidc",
+      "enabled": true,
+      "updateProfileFirstLoginMode": "on",
+      "trustEmail": true,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "authenticateByDefault": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "clientId": "0oaumqn62x8iWkK0r697",
+        "clientSecret": "n3DdH4tj5tuv4JoAzbrOwD8EAwe7RbCrWPxUy7QvOdkab7Xbl3N_CXtk51-EAaLt",
+        "tokenUrl": "https://integrator-9940318.okta.com/oauth2/default/v1/token",
+        "authorizationUrl": "https://integrator-9940318.okta.com/oauth2/default/v1/authorize",
+        "jwksUrl": "https://integrator-9940318.okta.com/oauth2/default/v1/keys",
+        "issuer": "https://integrator-9940318.okta.com/oauth2/default",
+        "userInfoUrl": "https://integrator-9940318.okta.com/oauth2/default/v1/userinfo",
+        "clientAuthMethod": "client_secret_post",
+        "syncMode": "INHERIT",
+        "validateSignature": "true",
+        "useJwksUrl": "true",
+        "pkceEnabled": "false"
+      }
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "authz-client",
+      "name": "Authorization Server Client",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "authz-client-secret",
+      "redirectUris": [
+        "http://localhost:8000/api/v1/auth/callback",
+        "http://auth-server:8000/api/v1/auth/callback"
+      ],
+      "webOrigins": ["http://localhost:8000", "http://localhost:5173", "*"],
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "publicClient": false,
+      "frontchannelLogout": true,
+      "protocol": "openid-connect",
+      "fullScopeAllowed": true,
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "roles",
+        "profile",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access"
+      ]
+    }
+  ],
+  "clientScopes": [
+    {
+      "name": "roles",
+      "description": "OpenID Connect scope for roles",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "false",
+        "display.on.consent.screen": "true"
+      }
+    },
+    {
+      "name": "web-origins",
+      "description": "OpenID Connect scope for web origins",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "false",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "profile",
+      "description": "OpenID Connect built-in scope: profile",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true"
+      }
+    },
+    {
+      "name": "email",
+      "description": "OpenID Connect built-in scope: email",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true"
+      },
+      "protocolMappers": [
+        {
+          "name": "email",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "email",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "email",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "email verified",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "emailVerified",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "email_verified",
+            "jsonType.label": "boolean"
+          }
+        }
+      ]
+    },
+    {
+      "name": "address",
+      "description": "OpenID Connect built-in scope: address",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true"
+      }
+    },
+    {
+      "name": "phone",
+      "description": "OpenID Connect built-in scope: phone",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true"
+      }
+    },
+    {
+      "name": "offline_access",
+      "description": "OpenID Connect built-in scope: offline_access",
+      "protocol": "openid-connect",
+      "attributes": {
+        "display.on.consent.screen": "true"
+      }
+    },
+    {
+      "name": "acr",
+      "description": "OpenID Connect scope for acr",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "false",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "basic",
+      "description": "OpenID Connect scope for basic claims",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "false",
+        "display.on.consent.screen": "false"
+      }
+    }
+  ],
+  "browserSecurityHeaders": {
+    "contentSecurityPolicyReportOnly": "",
+    "xContentTypeOptions": "nosniff",
+    "referrerPolicy": "no-referrer",
+    "xRobotsTag": "none",
+    "xFrameOptions": "SAMEORIGIN",
+    "contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self'; object-src 'none';"
+  }
+}

@@ -17,11 +17,14 @@ Complete reference for all configuration options.
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `OKTA_DOMAIN` | **Yes** | - | Okta domain (e.g., `dev-123456.okta.com`) |
-| `OKTA_ISSUER` | **Yes** | - | Okta issuer URL (e.g., `https://dev-123456.okta.com/oauth2/default`) |
-| `OKTA_CLIENT_ID` | **Yes** | - | OAuth client ID from Okta |
-| `OKTA_CLIENT_SECRET` | **Yes** | - | OAuth client secret from Okta |
+| `OKTA_DOMAIN` | **Yes** | - | IdP domain (e.g., `localhost:8080` for Keycloak, `dev-123456.okta.com` for Okta) |
+| `OKTA_ISSUER` | **Yes** | - | External issuer URL for browser redirects (e.g., `http://localhost:8080/realms/authz`) |
+| `OKTA_ISSUER_INTERNAL` | No | Same as OKTA_ISSUER | Internal issuer URL for server-to-server communication in Docker (e.g., `http://keycloak:8080/realms/authz`) |
+| `OKTA_CLIENT_ID` | **Yes** | - | OAuth client ID |
+| `OKTA_CLIENT_SECRET` | **Yes** | - | OAuth client secret |
 | `REDIRECT_URI` | **Yes** | - | Callback URL (e.g., `http://localhost:8000/api/v1/auth/callback`) |
+
+> **Note:** When running in Docker, the auth-server container needs to communicate with Keycloak using Docker's internal network (`keycloak:8080`), while browsers need to use `localhost:8080`. The `OKTA_ISSUER_INTERNAL` variable solves this by providing separate URLs for server-to-server vs browser communication.
 
 ### Service URLs
 
@@ -59,17 +62,28 @@ ACCESS_TOKEN_EXPIRE_MINUTES=60
 REFRESH_TOKEN_EXPIRE_DAYS=30
 
 # ============================================================
-# Okta Configuration
+# Keycloak Configuration (Development)
 # ============================================================
 
-# REQUIRED: Your Okta domain and credentials
-OKTA_DOMAIN=dev-123456.okta.com
-OKTA_ISSUER=https://dev-123456.okta.com/oauth2/default
-OKTA_CLIENT_ID=0oa1234567890abcdef
-OKTA_CLIENT_SECRET=abcdefghijklmnopqrstuvwxyz123456
-
-# REQUIRED: Must match Okta application settings
+# For local Keycloak (included in docker-compose)
+OKTA_DOMAIN=localhost:8080
+OKTA_ISSUER=http://localhost:8080/realms/authz
+OKTA_ISSUER_INTERNAL=http://keycloak:8080/realms/authz
+OKTA_CLIENT_ID=authz-client
+OKTA_CLIENT_SECRET=authz-client-secret
 REDIRECT_URI=http://localhost:8000/api/v1/auth/callback
+
+# ============================================================
+# Okta Configuration (Production Alternative)
+# ============================================================
+
+# Uncomment these and comment out Keycloak settings above to use Okta
+# OKTA_DOMAIN=dev-123456.okta.com
+# OKTA_ISSUER=https://dev-123456.okta.com/oauth2/default
+# OKTA_ISSUER_INTERNAL=  # Not needed for cloud IdPs
+# OKTA_CLIENT_ID=0oa1234567890abcdef
+# OKTA_CLIENT_SECRET=abcdefghijklmnopqrstuvwxyz123456
+# REDIRECT_URI=http://localhost:8000/api/v1/auth/callback
 
 # ============================================================
 # Service URLs (defaults work for docker-compose)
@@ -158,6 +172,54 @@ From the application's General tab:
 From the Okta domain:
 - Your Okta URL → `OKTA_DOMAIN`
 - Issuer URI (found in API → Authorization Servers) → `OKTA_ISSUER`
+
+---
+
+## Keycloak Setup (Development)
+
+Keycloak is included in `docker-compose.yaml` and auto-configured with a realm import.
+
+### Default Configuration
+
+| Setting | Value |
+|---------|-------|
+| Admin Console | `http://localhost:8080/admin` |
+| Admin Credentials | `admin` / `admin` |
+| Realm | `authz` |
+| Client ID | `authz-client` |
+| Client Secret | `authz-client-secret` |
+
+### Pre-configured Test Users
+
+| Email | Password | Description |
+|-------|----------|-------------|
+| `testuser@acme.com` | `testpassword123` | Standard test user |
+| `admin@acme.com` | `adminpassword123` | Admin test user |
+
+### Federated Identity Providers
+
+Keycloak is pre-configured with federated IdP connections:
+
+| IdP | Status | Notes |
+|-----|--------|-------|
+| Okta | Configured | Requires valid Okta tenant |
+| Azure AD | Template | Needs client secret |
+| Auth0 | Template | Needs client secret |
+
+To enable federated IdPs:
+1. Go to Keycloak Admin Console
+2. Navigate to Identity Providers
+3. Edit the IdP and add the client secret
+4. Enable the IdP
+
+### Customizing Keycloak
+
+The realm configuration is in `keycloak-config/realm-export.json`. To modify:
+
+1. Edit the JSON file
+2. Restart Keycloak: `docker compose restart keycloak`
+
+Or use the Admin Console and export the realm for persistence.
 
 ---
 

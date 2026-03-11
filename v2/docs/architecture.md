@@ -20,8 +20,13 @@ graph TB
         AuthzRouter[Authorize Router]
     end
 
-    subgraph "External IdP"
-        Okta[Okta / Azure AD]
+    subgraph "Identity Broker - Keycloak"
+        KC[Keycloak]
+        NativeUsers[Native Users]
+        FederatedIdPs[Federated IdPs]
+        Okta[Okta]
+        AzureAD[Azure AD]
+        Auth0[Auth0]
     end
 
     subgraph "Policy Engine"
@@ -46,7 +51,13 @@ graph TB
     API --> AuthRouter
     API --> AuthzRouter
 
-    AuthRouter --> Okta
+    AuthRouter --> KC
+    KC --> NativeUsers
+    KC --> FederatedIdPs
+    FederatedIdPs --> Okta
+    FederatedIdPs --> AzureAD
+    FederatedIdPs --> Auth0
+    
     AuthRouter --> OPA
     AuthRouter --> Redis
 
@@ -76,18 +87,30 @@ The central authentication and authorization service.
 
 **Technology:** Python 3.11, FastAPI, Pydantic
 
-### 2. Identity Provider (Okta)
+### 2. Identity Broker (Keycloak)
 
-External identity provider for user authentication.
+Keycloak acts as an Identity Broker, providing a unified authentication layer.
 
 | Responsibility | Description |
 |----------------|-------------|
-| User Authentication | Validates user credentials |
+| Native Authentication | Username/password login directly to Keycloak |
+| Identity Brokering | Federated SSO with external IdPs (Okta, Azure AD, Auth0) |
 | MFA | Multi-factor authentication |
-| SSO | Single sign-on across applications |
-| User Directory | Source of truth for user identity |
+| User Federation | Optional LDAP/AD integration |
+| Session Management | SSO sessions across applications |
 
-**Protocol:** OAuth 2.0 / OpenID Connect
+**Supported IdP Protocols:** 
+- OAuth 2.0 / OpenID Connect
+- SAML 2.0
+- Social Logins (Google, GitHub, etc.)
+
+**Key URLs:**
+| Endpoint | URL Pattern |
+|----------|-------------|
+| Authorization | `/realms/{realm}/protocol/openid-connect/auth` |
+| Token | `/realms/{realm}/protocol/openid-connect/token` |
+| JWKS | `/realms/{realm}/protocol/openid-connect/certs` |
+| UserInfo | `/realms/{realm}/protocol/openid-connect/userinfo` |
 
 ### 3. Open Policy Agent (OPA)
 
@@ -155,20 +178,32 @@ sequenceDiagram
     participant User
     participant Frontend
     participant AuthServer
-    participant IdP as Okta
+    participant Keycloak
+    participant IdP as Federated IdP (Okta/Azure/Auth0)
     participant OPA
     participant Redis
 
     User->>Frontend: Click Login
     Frontend->>AuthServer: POST /login {platform, org}
     AuthServer->>Redis: Store state
-    AuthServer->>Frontend: Return IdP URL
-    Frontend->>IdP: Redirect to login
-    User->>IdP: Enter credentials
-    IdP->>Frontend: Redirect with code
+    AuthServer->>Frontend: Return Keycloak URL
+    Frontend->>Keycloak: Redirect to login
+    
+    alt Native Login
+        User->>Keycloak: Enter username/password
+        Keycloak->>Keycloak: Authenticate
+    else Federated Login
+        User->>Keycloak: Click "Login with Okta/Azure/Auth0"
+        Keycloak->>IdP: Redirect to IdP
+        User->>IdP: Authenticate at IdP
+        IdP->>Keycloak: Return with tokens
+        Keycloak->>Keycloak: Map user identity
+    end
+    
+    Keycloak->>Frontend: Redirect with code
     Frontend->>AuthServer: GET /callback?code=...
-    AuthServer->>IdP: Exchange code for tokens
-    IdP->>AuthServer: Return ID token
+    AuthServer->>Keycloak: Exchange code for tokens
+    Keycloak->>AuthServer: Return ID token
     AuthServer->>OPA: Check user exists
     AuthServer->>OPA: Get permissions
     AuthServer->>Redis: Store refresh token

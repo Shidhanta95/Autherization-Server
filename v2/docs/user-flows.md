@@ -6,18 +6,25 @@ Visual diagrams of the main user flows in the system.
 
 ### Overview
 
+Keycloak acts as an Identity Broker, supporting both native authentication and federated SSO with external IdPs.
+
 ```mermaid
 graph LR
     A[User] --> B[Frontend]
     B --> C[Auth Server]
-    C --> D[IdP/Okta]
-    D --> E[User Authenticates]
-    E --> F[Callback]
-    F --> G[JWT Issued]
-    G --> H[User Logged In]
+    C --> D[Keycloak]
+    D --> E{Login Type?}
+    E -->|Native| F[Username/Password]
+    E -->|Federated| G[External IdP]
+    G --> H[Okta/Azure/Auth0]
+    F --> I[Authenticated]
+    H --> I
+    I --> J[Callback]
+    J --> K[JWT Issued]
+    K --> L[User Logged In]
 ```
 
-### Detailed Flow
+### Detailed Flow (Native Login)
 
 ```mermaid
 sequenceDiagram
@@ -26,34 +33,33 @@ sequenceDiagram
     participant F as Frontend
     participant A as Auth Server
     participant R as Redis
-    participant I as IdP (Okta)
+    participant K as Keycloak
     participant O as OPA
 
     Note over U,F: Step 1: User initiates login
     U->>F: Click "Login"
     F->>F: Select platform & org
 
-    Note over F,A: Step 2: Get IdP URL
-    F->>A: POST /login<br/>{platform: "mlops", org_name: "cloudangles"}
+    Note over F,A: Step 2: Get Keycloak URL
+    F->>A: POST /login<br/>{platform: "mlops", org_name: "acme"}
     A->>A: Validate platform
     A->>A: Generate state (UUID)
     A->>R: Store state → {platform, org}
-    A->>F: {login_url: "https://okta.com/..."}
+    A->>F: {login_url: "http://keycloak:8080/realms/authz/..."}
 
-    Note over F,I: Step 3: Redirect to IdP
-    F->>I: Redirect to login_url
-    U->>I: Enter username/password
-    I->>I: Authenticate user
-    I->>I: MFA (if enabled)
+    Note over F,K: Step 3: Redirect to Keycloak
+    F->>K: Redirect to login_url
+    U->>K: Enter username/password
+    K->>K: Authenticate user
 
-    Note over I,F: Step 4: IdP callback
-    I->>F: Redirect to callback?code=xyz&state=abc
+    Note over K,F: Step 4: Keycloak callback
+    K->>F: Redirect to callback?code=xyz&state=abc
 
     Note over F,A: Step 5: Exchange code
     F->>A: GET /callback?code=xyz&state=abc
     A->>R: Lookup state → {platform, org}
-    A->>I: POST /token (exchange code)
-    I->>A: {id_token, access_token}
+    A->>K: POST /token (exchange code)
+    K->>A: {id_token, access_token}
     A->>A: Verify ID token signature
     A->>A: Extract email from claims
 
@@ -75,6 +81,51 @@ sequenceDiagram
     Note over F,U: Step 8: Complete
     F->>F: Store tokens
     F->>U: Show logged-in state
+```
+
+### Detailed Flow (Federated Login via Okta/Azure/Auth0)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant F as Frontend
+    participant A as Auth Server
+    participant R as Redis
+    participant K as Keycloak
+    participant IdP as External IdP<br/>(Okta/Azure/Auth0)
+    participant O as OPA
+
+    Note over U,F: Step 1: User initiates login
+    U->>F: Click "Login"
+    F->>A: POST /login {platform, org}
+    A->>R: Store state
+    A->>F: {login_url: "keycloak/..."}
+
+    Note over F,K: Step 2: Keycloak login page
+    F->>K: Redirect to Keycloak
+    U->>K: Click "Login with Okta" (or Azure/Auth0)
+
+    Note over K,IdP: Step 3: Federated authentication
+    K->>IdP: Redirect to external IdP
+    U->>IdP: Authenticate at IdP
+    IdP->>IdP: Verify credentials + MFA
+    IdP->>K: Return with IdP tokens
+
+    Note over K: Step 4: Identity mapping
+    K->>K: Map external identity to Keycloak user
+    K->>K: Apply attribute mappings
+    K->>F: Redirect to callback?code=xyz
+
+    Note over F,A: Step 5: Token exchange (same as native)
+    F->>A: GET /callback?code=xyz&state=abc
+    A->>K: Exchange code for tokens
+    K->>A: {id_token, access_token}
+    A->>O: Get permissions
+    A->>F: {access_token, refresh_token}
+
+    Note over F,U: Step 6: Complete
+    F->>U: Logged in!
 ```
 
 ## 2. Token Refresh Flow

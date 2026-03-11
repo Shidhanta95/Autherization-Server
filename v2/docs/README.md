@@ -31,10 +31,11 @@ The User Management System provides secure **authentication** and **authorizatio
 
 | Capability | Description |
 |------------|-------------|
-| **SSO Authentication** | Integration with enterprise identity providers |
+| **SSO Authentication** | Integration with enterprise identity providers (Keycloak, Okta, Azure AD, Auth0) |
+| **Identity Brokering** | Keycloak acts as Identity Broker for federated SSO with multiple IdPs |
 | **JWT Tokens** | Secure, stateless authentication tokens |
 | **RBAC Permissions** | Granular read/write/delete permissions per resource |
-| **Real-time Sync** | Permission changes propagate within seconds |
+| **Real-time Sync** | Permission changes propagate within seconds via CDC |
 | **License Enforcement** | Feature access tied to license terms |
 
 ### Business Value
@@ -50,7 +51,11 @@ The User Management System provides secure **authentication** and **authorizatio
 ### Prerequisites
 
 - Docker and Docker Compose
-- Okta account (or other OIDC-compatible IdP)
+- Identity Provider (one of):
+  - **Keycloak** (included in docker-compose for development)
+  - Okta account
+  - Azure AD
+  - Auth0
 
 ### Running the System
 
@@ -58,12 +63,11 @@ The User Management System provides secure **authentication** and **authorizatio
 # Navigate to v2 directory
 cd v2
 
-# Configure environment
-cp auth-server/.env.example auth-server/.env
-# Edit .env with your Okta credentials
-
-# Start all services
+# Start all services (includes Keycloak)
 docker-compose up -d
+
+# Wait for services to be healthy (especially Keycloak ~60s)
+docker-compose ps
 
 # Check status
 docker-compose ps
@@ -77,7 +81,17 @@ curl http://localhost:8000/health
 
 # View API docs
 open http://localhost:8000/docs
+
+# Keycloak Admin Console (admin/admin)
+open http://localhost:8080/admin
 ```
+
+### Default Test Users (Keycloak)
+
+| Email | Password | Role |
+|-------|----------|------|
+| `testuser@acme.com` | `testpassword123` | viewer |
+| `admin@acme.com` | `adminpassword123` | admin |
 
 ## Architecture Overview
 
@@ -98,23 +112,23 @@ open http://localhost:8000/docs
 └──────────────┬────────────────────────────┬─────────────────────┘
                │                            │
                ▼                            ▼
-┌──────────────────────────┐  ┌───────────────────────────────────┐
-│     Identity Provider    │  │              OPA                   │
-│     (Okta, Azure AD)     │  │      (Policy Engine)               │
-│                          │  │                                    │
-│  - User authentication   │  │  - Permission checks               │
-│  - MFA, SSO              │  │  - Role-based access control       │
-└──────────────────────────┘  └──────────────┬────────────────────┘
-                                             │
-                                             ▼
-                              ┌───────────────────────────────────┐
-                              │          PostgreSQL               │
-                              │       (RBAC Database)             │
-                              │                                   │
-                              │  - Organizations                  │
-                              │  - Roles & Permissions            │
-                              │  - User Assignments               │
-                              └───────────────────────────────────┘
+┌──────────────────────────────┐  ┌───────────────────────────────┐
+│         KEYCLOAK             │  │              OPA               │
+│     (Identity Broker)        │  │      (Policy Engine)           │
+│                              │  │                                │
+│  ┌────────────────────────┐  │  │  - Permission checks           │
+│  │   Native Users         │  │  │  - Role-based access control   │
+│  │   (username/password)  │  │  └──────────────┬────────────────┘
+│  └────────────────────────┘  │                 │
+│                              │                 ▼
+│  ┌────────────────────────┐  │  ┌───────────────────────────────┐
+│  │   Federated IdPs       │  │  │          PostgreSQL           │
+│  │   - Okta               │  │  │       (RBAC Database)         │
+│  │   - Azure AD           │  │  │                               │
+│  │   - Auth0              │  │  │  - Organizations              │
+│  └────────────────────────┘  │  │  - Roles & Permissions        │
+└──────────────────────────────┘  │  - User Assignments           │
+                                  └───────────────────────────────┘
 ```
 
 ## Support

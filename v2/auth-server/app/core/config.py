@@ -28,7 +28,8 @@ class Settings(BaseSettings):
     # OKTA / IDP SETTINGS
     # ============================================================
     OKTA_DOMAIN: str
-    OKTA_ISSUER: str
+    OKTA_ISSUER: str  # External URL (for browser redirects)
+    OKTA_ISSUER_INTERNAL: str = ""  # Internal URL (for server-to-server, e.g., http://keycloak:8080/realms/authz)
     OKTA_CLIENT_ID: str
     OKTA_CLIENT_SECRET: str
     REDIRECT_URI: str

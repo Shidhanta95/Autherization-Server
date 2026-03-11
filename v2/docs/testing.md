@@ -171,6 +171,110 @@ pytest tests/test_e2e.py -v --e2e
 docker-compose down
 ```
 
+### 5. Interactive Browser E2E Test
+
+A comprehensive E2E test that uses a real browser for SSO login with Keycloak.
+
+```bash
+cd v2
+
+# Ensure services are running
+docker-compose up -d
+
+# Activate virtual environment
+source venv/bin/activate
+
+# Install Playwright if needed
+pip install playwright
+playwright install chromium
+
+# Run the interactive test
+python e2e_interactive_test.py
+```
+
+**What this test does:**
+
+1. **Health Check** - Verifies all services are running (Auth Server, OPA, Keycloak, PostgreSQL)
+2. **Browser Login** - Opens a real browser to Keycloak login page
+3. **Manual Authentication** - You log in manually (native or federated IdP)
+4. **Token Capture** - Captures JWT tokens from callback
+5. **Token Analysis** - Decodes and displays token claims
+6. **Authorization Test** - Tests permission checks with current role
+7. **Role Change** - Modifies user role in PostgreSQL (viewer ↔ admin)
+8. **CDC Sync** - Waits for Debezium to sync changes to OPA (~2-5s)
+9. **Token Refresh** - Gets new token with updated permissions
+10. **Permission Verification** - Confirms permissions changed correctly
+11. **Cleanup** - Resets user role
+
+**Test Users for Interactive Test:**
+
+| Login Type | Credentials |
+|------------|-------------|
+| Native (Keycloak) | `testuser@acme.com` / `testpassword123` |
+| Native (Keycloak) | `admin@acme.com` / `adminpassword123` |
+| Federated (Okta) | Click "Login with Okta" button |
+
+**Sample Output:**
+
+```
+======================================================================
+            Interactive E2E Test: Authorization Server v2             
+======================================================================
+
+[STEP 0] Service Health Check
+  ▶ TEST: Auth Server
+    ✓ PASS: Auth Server is healthy
+  ▶ TEST: OPA
+    ✓ PASS: OPA is healthy
+  ▶ TEST: Keycloak
+    ✓ PASS: Keycloak is healthy
+  ▶ TEST: PostgreSQL
+    ✓ PASS: PostgreSQL is healthy
+
+[STEP 1] Interactive Browser SSO Login
+  ▶ TEST: Initiate login via Auth Server
+    ✓ PASS: Got authorization URL
+  ▶ TEST: Browser Login (Manual)
+    ⏳ WAITING: Complete the login in the browser...
+    ✓ PASS: Login completed!
+    ✓ LOGIN SUCCESSFUL!
+      • Email: testuser@acme.com
+      • Organization: acme
+
+[STEP 5] Modify User Role in Database
+  ▶ TEST: Change role: viewer → admin
+    ✓ PASS: Role updated to admin
+
+[STEP 6] Wait for CDC Pipeline Sync
+  ▶ TEST: Wait for CDC sync to OPA
+    → Expecting role to become 'admin'
+    ✓ PASS: OPA synced after 2s - role is now 'admin'
+
+[STEP 7] Refresh JWT Token
+    📊 PERMISSION COMPARISON:
+      Before (viewer):
+        projects: {'delete': False, 'read': True, 'write': False}
+      After (admin):
+        projects: {'delete': True, 'read': True, 'write': True}
+    ✓ PASS: Permissions changed correctly!
+
+======================================================================
+                   E2E TEST COMPLETED SUCCESSFULLY!                   
+======================================================================
+```
+
+### 6. Non-Interactive E2E Test
+
+For CI/CD pipelines, use the test-login endpoint (bypasses SSO):
+
+```bash
+cd v2
+source venv/bin/activate
+python e2e_test.py
+```
+
+This test uses the `/api/v1/auth/test-login` endpoint which is only available when `DEBUG=true`.
+
 ## Test Fixtures
 
 ### Available Fixtures
