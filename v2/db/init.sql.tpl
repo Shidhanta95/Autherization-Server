@@ -129,6 +129,26 @@ END; $$ LANGUAGE plpgsql;
 
 
 -- ============================================================
+-- AUDIT LOG
+-- ============================================================
+CREATE TABLE IF NOT EXISTS audit_log (
+    id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    timestamp   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    actor_email VARCHAR(255) NOT NULL,
+    platform    VARCHAR(50) NOT NULL,
+    org_name    VARCHAR(100),
+    action      VARCHAR(50) NOT NULL,
+    target_type VARCHAR(50) NOT NULL,
+    target_id   UUID,
+    details     JSONB,
+    ip_address  VARCHAR(45)
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp ON audit_log(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_log_platform_org ON audit_log(platform, org_name);
+
+
+-- ============================================================
 -- GLOBAL PUBLICATION FOR ALL TABLES
 -- ============================================================
 DROP PUBLICATION IF EXISTS authz_pub;
