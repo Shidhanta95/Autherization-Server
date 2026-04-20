@@ -35,6 +35,17 @@ class Settings(BaseSettings):
     REDIRECT_URI: str
 
     # ============================================================
+    # POSTGRESQL SETTINGS
+    # ============================================================
+    POSTGRES_HOST: str = "postgres"
+    POSTGRES_PORT: int = 5432
+    POSTGRES_DB: str = "authz"
+    POSTGRES_USER: str = "authz"
+    POSTGRES_PASSWORD: str = "authz123"
+    POSTGRES_MIN_POOL: int = 2
+    POSTGRES_MAX_POOL: int = 10
+
+    # ============================================================
     # OPA SETTINGS
     # ============================================================
     OPA_URL: str = "http://opa:8181"

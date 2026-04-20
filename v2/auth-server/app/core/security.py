@@ -163,3 +163,25 @@ async def get_optional_user(
         return await get_current_user(credentials)
     except HTTPException:
         return None
+
+
+async def require_org_admin(
+    current_user: TokenData = Depends(get_current_user),
+) -> TokenData:
+    """
+    FastAPI dependency that requires the user to be an org admin.
+
+    Usage:
+        @router.post("/manage/...")
+        async def admin_route(user: TokenData = Depends(require_org_admin)):
+            ...
+
+    Raises:
+        HTTPException 403: If the user is not an org admin
+    """
+    if current_user.is_org_admin != 1:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This action requires org admin privileges",
+        )
+    return current_user

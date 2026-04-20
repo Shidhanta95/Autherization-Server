@@ -269,6 +269,13 @@ services:
       # Service URLs
       OPA_URL: http://opa:8181
       REDIS_URL: redis://redis:6379
+
+      # PostgreSQL (for management API)
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: authz
+      POSTGRES_USER: authz
+      POSTGRES_PASSWORD: authz123
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]

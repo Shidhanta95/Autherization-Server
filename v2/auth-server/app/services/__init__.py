@@ -8,6 +8,7 @@ from app.services.sso_service import (
 )
 from app.services.session_service import session_service, SessionService
 from app.services.token_service import token_service, TokenService
+from app.services import manage_service
 
 __all__ = [
     "opa_service",
@@ -20,4 +21,5 @@ __all__ = [
     "SessionService",
     "token_service",
     "TokenService",
+    "manage_service",
 ]

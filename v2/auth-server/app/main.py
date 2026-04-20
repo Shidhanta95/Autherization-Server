@@ -13,7 +13,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routers import auth_router, authorize_router
+from app.db import init_pool, close_pool
+from app.routers import auth_router, authorize_router, manage_router
 from app.services import session_service
 
 
@@ -27,9 +28,12 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     print("[AUTH] Starting Auth Server...")
+    await init_pool()
+    print("[AUTH] Database pool initialised")
     yield
     # Shutdown
     print("[AUTH] Shutting down Auth Server...")
+    await close_pool()
     await session_service.close()
 
 
@@ -53,6 +57,13 @@ This API provides:
 ### Authorization
 - `POST /api/v1/authorize` - Check if user can perform action
 - `GET /api/v1/authorize/me` - Get current user info
+
+### Management (Org Admin required)
+- `GET/POST /api/v1/manage/orgs` - Organization CRUD
+- `GET/POST /api/v1/manage/orgs/{id}/roles` - Role CRUD
+- `PUT /api/v1/manage/orgs/{id}/roles/{id}/permissions` - Permission management
+- `GET/POST /api/v1/manage/orgs/{id}/users` - User management
+- `GET /api/v1/manage/audit` - Audit log
     """,
     version="2.0.0",
     lifespan=lifespan,
@@ -70,6 +81,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth_router)
 app.include_router(authorize_router)
+app.include_router(manage_router)
 
 
 @app.get("/", tags=["Health"])
