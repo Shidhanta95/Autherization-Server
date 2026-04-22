@@ -25,3 +25,6 @@ htmlcov/
 # Environment files
 .env
 *.env.local
+
+# E2E test result logs
+**/test-results/
