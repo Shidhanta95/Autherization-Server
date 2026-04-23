@@ -679,7 +679,8 @@ v2/
 ├── docker-compose.yaml                       # All 11 services
 ├── e2e_test.py                               # End-to-end tests
 ├── e2e_browser_test.py                       # Browser-based E2E tests
-└── e2e_interactive_test.py                   # Interactive testing
+├── e2e_interactive_test.py                   # Interactive testing
+└── e2e_role_crud_test.py                     # Management API CRUD E2E tests
 ```
 
 ### Which file to look at for what
@@ -1073,7 +1074,7 @@ All endpoints are under `/api/v1/manage` and require `Authorization: Bearer <tok
 
 | Method | Path | Body | Response | Notes |
 |--------|------|------|----------|-------|
-| GET | `.../roles/{role_id}/permissions` | — | `{role_name, permissions[], total}` | |
+| GET | `.../roles/{role_id}/permissions` | — | `{role_name, org_name, permissions[], total}` | |
 | PUT | `.../roles/{role_id}/permissions` | `{permissions: [{resource, can_read, can_write, can_delete}]}` | Same | Bulk upsert |
 | DELETE | `.../roles/{role_id}/permissions/{resource}` | — | 204 | Revokes all perms on resource |
 
