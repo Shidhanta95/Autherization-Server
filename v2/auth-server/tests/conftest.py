@@ -89,6 +89,20 @@ def valid_access_token(mock_user_context, mock_permissions) -> str:
 
 
 @pytest.fixture
+def non_admin_access_token(mock_permissions) -> str:
+    """Generate a valid access token WITHOUT org admin privileges"""
+    token, _ = token_service.create_access_token(
+        email="viewer@example.com",
+        user_id="viewer-user-id",
+        organization="testorg",
+        platform="mlops",
+        permissions=mock_permissions,
+        org_admin=0,
+    )
+    return token
+
+
+@pytest.fixture
 def expired_access_token() -> str:
     """Generate an expired access token for testing"""
     from datetime import datetime, timedelta, timezone
