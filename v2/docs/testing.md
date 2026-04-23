@@ -6,12 +6,14 @@ Comprehensive guide for testing the User Management System.
 
 ```
 v2/auth-server/tests/
-├── conftest.py           # Shared fixtures and configuration
-├── test_auth.py          # Authentication endpoint tests
-├── test_authorize.py     # Authorization endpoint tests
-├── test_token_service.py # Token service unit tests
-├── test_opa_service.py   # OPA service unit tests
-└── test_integration.py   # End-to-end integration tests
+├── conftest.py              # Shared fixtures and configuration
+├── test_auth.py             # Authentication endpoint tests
+├── test_authorize.py        # Authorization endpoint tests
+├── test_token_service.py    # Token service unit tests
+├── test_token_lifecycle.py  # Token lifecycle (create, refresh, revoke) tests
+├── test_opa_service.py      # OPA service unit tests
+├── test_opa_updates.py      # OPA data sync/update tests
+└── test_integration.py      # End-to-end integration tests
 ```
 
 ## Running Tests

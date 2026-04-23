@@ -12,6 +12,20 @@ Complete reference for all configuration options.
 | `ALGORITHM` | No | `HS256` | JWT signing algorithm |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | No | `60` | Access token lifetime in minutes |
 | `REFRESH_TOKEN_EXPIRE_DAYS` | No | `30` | Refresh token lifetime in days |
+| `APP_NAME` | No | `Auth Server` | Application name |
+| `DEBUG` | No | `false` | Enables the `/auth/test-login` endpoint for development |
+
+### Database Configuration (Auth Server)
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `POSTGRES_HOST` | No | `postgres` | PostgreSQL host |
+| `POSTGRES_PORT` | No | `5432` | PostgreSQL port |
+| `POSTGRES_DB` | No | `authz` | Database name |
+| `POSTGRES_USER` | No | `authz` | Database user |
+| `POSTGRES_PASSWORD` | No | `authz123` | Database password |
+| `POSTGRES_MIN_POOL` | No | `2` | Minimum connection pool size |
+| `POSTGRES_MAX_POOL` | No | `10` | Maximum connection pool size |
 
 ### Okta/IdP Configuration
 
