@@ -50,6 +50,12 @@ BEGIN
         user_uid VARCHAR(255) NOT NULL, is_org_admin BOOLEAN DEFAULT false
     )', v_prefix || '_users', v_prefix || '_orgs', v_prefix || '_roles');
 
+    -- Indexes for query performance
+    EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON %I(org_id)',
+        v_prefix || '_users_org_id_idx', v_prefix || '_users');
+    EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON %I(role_id)',
+        v_prefix || '_users_role_id_idx', v_prefix || '_users');
+
     -- Publication for CDC
     EXECUTE format('DROP PUBLICATION IF EXISTS %I', v_prefix || '_pub');
     EXECUTE format('CREATE PUBLICATION %I FOR TABLE %I, %I, %I, %I',
@@ -145,7 +151,8 @@ CREATE TABLE IF NOT EXISTS audit_log (
 );
 
 CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp ON audit_log(timestamp DESC);
-CREATE INDEX IF NOT EXISTS idx_audit_log_platform_org ON audit_log(platform, org_name);
+CREATE INDEX IF NOT EXISTS idx_audit_log_platform_ts ON audit_log(platform, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_log_platform_org_ts ON audit_log(platform, org_name, timestamp DESC);
 
 
 -- ============================================================
